@@ -8,13 +8,13 @@ venv/
 .ipynb_checkpoints/
 
 # Dataset
-data/
+
 
 # CatBoost training logs
 catboost_info/
 
 # Local model artifacts
-models/*.pkl
+
 models/*.png
 
 # Environment / secrets
