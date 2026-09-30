@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Property Valuation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #F7F5F0;
+    --ink: #1D1B18;
+    --ink-soft: #5C584F;
+    --line: #D8D3C7;
+    --brass: #9A6B2C;
+    --brass-deep: #7C5522;
+    --pine: #2F4A43;
+    --card: #FFFFFF;
+    --error: #A23B2E;
+  }
+  :root:not([data-theme="light"]) {
+    @media (prefers-color-scheme: dark) {
+      --paper: #17150F;
+      --ink: #EEEAE0;
+      --ink-soft: #A79F8F;
+      --line: #3A362C;
+      --card: #201D16;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #17150F;
+    --ink: #EEEAE0;
+    --ink-soft: #A79F8F;
+    --line: #3A362C;
+    --card: #201D16;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Inter', system-ui, sans-serif;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+
+  header.page {
+    margin-bottom: 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 16px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 24px;
+  }
+  header.page h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: clamp(28px, 4vw, 38px);
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+  }
+  header.page p { margin: 0; color: var(--ink-soft); font-size: 14.5px; max-width: 46ch; }
+
+  .api-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+  .api-row input {
+    font: inherit;
+    font-size: 13px;
+    padding: 7px 10px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--card);
+    color: var(--ink);
+    width: 220px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 28px;
+    align-items: start;
+  }
+  @media (max-width: 800px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+
+  form.card, .result.card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 28px;
+  }
+
+  fieldset {
+    border: none;
+    padding: 0;
+    margin: 0 0 26px;
+  }
+  fieldset:last-of-type { margin-bottom: 8px; }
+  legend {
+    font-size: 12.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--brass-deep);
+    font-weight: 600;
+    padding: 0 0 12px;
+    margin: 0 0 12px;
+    border-bottom: 1px solid var(--line);
+    width: 100%;
+  }
+
+  .field-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 16px;
+  }
+  .field-grid.wide { grid-template-columns: 1fr; }
+
+  label {
+    display: block;
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-bottom: 5px;
+  }
+  input, select {
+    width: 100%;
+    font: inherit;
+    font-size: 14.5px;
+    padding: 9px 11px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--paper);
+    color: var(--ink);
+  }
+  input:focus, select:focus {
+    outline: 2px solid var(--brass);
+    outline-offset: 1px;
+  }
+
+  button.submit {
+    width: 100%;
+    margin-top: 6px;
+    padding: 13px 18px;
+    background: var(--pine);
+    color: #F7F5F0;
+    border: none;
+    border-radius: 7px;
+    font: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 120ms ease;
+  }
+  button.submit:hover { background: #253D37; }
+  button.submit:disabled { opacity: 0.6; cursor: wait; }
+
+  .result.card {
+    position: sticky;
+    top: 24px;
+    text-align: center;
+    min-height: 260px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .result-label {
+    font-size: 12.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-soft);
+    margin-bottom: 10px;
+  }
+  .result-price {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: clamp(34px, 5vw, 48px);
+    color: var(--pine);
+    line-height: 1.1;
+    margin-bottom: 6px;
+    word-break: break-word;
+  }
+  .result-sub { font-size: 13px; color: var(--ink-soft); }
+  .result-empty { color: var(--ink-soft); font-size: 14.5px; }
+  .result-empty .glyph {
+    font-family: 'Fraunces', serif;
+    font-size: 40px;
+    color: var(--line);
+    display: block;
+    margin-bottom: 10px;
+  }
+  .result-error {
+    color: var(--error);
+    font-size: 14px;
+    text-align: left;
+    background: color-mix(in srgb, var(--error) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--error) 30%, transparent);
+    border-radius: 7px;
+    padding: 14px 16px;
+  }
+  .result-error strong { display: block; margin-bottom: 4px; }
+
+  .spinner {
+    width: 20px; height: 20px;
+    border: 2.5px solid rgba(255,255,255,0.35);
+    border-top-color: #F7F5F0;
+    border-radius: 50%;
+    display: inline-block;
+    animation: spin 0.7s linear infinite;
+    vertical-align: -4px;
+    margin-right: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="page">
+      <div>
+        <h1>Property Valuation</h1>
+        <p>Enter a property's details to get an estimated sale price from the trained model.</p>
+      </div>
+      <div class="api-row">
+        <label for="apiBase" style="margin:0;">API&nbsp;URL</label>
+        <input id="apiBase" type="text" value="http://localhost:8000" spellcheck="false">
+      </div>
+    </header>
+
+    <div class="grid">
+      <form class="card" id="valuationForm">
+
+        <fieldset>
+          <legend>Size &amp; layout</legend>
+          <div class="field-grid">
+            <div>
+              <label for="GrLivArea">Living area (sq ft)</label>
+              <input type="number" id="GrLivArea" value="1500" min="0" required>
+            </div>
+            <div>
+              <label for="LotArea">Lot area (sq ft)</label>
+              <input type="number" id="LotArea" value="8000" min="0" required>
+            </div>
+            <div>
+              <label for="TotalBsmtSF">Basement area (sq ft)</label>
+              <input type="number" id="TotalBsmtSF" value="800" min="0" required>
+            </div>
+            <div>
+              <label for="FirstFlrSF">1st floor area (sq ft)</label>
+              <input type="number" id="FirstFlrSF" value="900" min="0" required>
+            </div>
+            <div>
+              <label for="SecondFlrSF">2nd floor area (sq ft)</label>
+              <input type="number" id="SecondFlrSF" value="600" min="0">
+            </div>
+            <div>
+              <label for="HouseStyle">House style</label>
+              <select id="HouseStyle">
+                <option>1Story</option>
+                <option selected>2Story</option>
+                <option>1.5Fin</option>
+                <option>SLvl</option>
+                <option>SFoyer</option>
+              </select>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Rooms</legend>
+          <div class="field-grid">
+            <div>
+              <label for="FullBath">Full bathrooms</label>
+              <input type="number" id="FullBath" value="2" min="0" required>
+            </div>
+            <div>
+              <label for="HalfBath">Half bathrooms</label>
+              <input type="number" id="HalfBath" value="1" min="0">
+            </div>
+            <div>
+              <label for="BsmtFullBath">Basement full baths</label>
+              <input type="number" id="BsmtFullBath" value="0" min="0">
+            </div>
+            <div>
+              <label for="BsmtHalfBath">Basement half baths</label>
+              <input type="number" id="BsmtHalfBath" value="0" min="0">
+            </div>
+            <div>
+              <label for="GarageCars">Garage capacity (cars)</label>
+              <input type="number" id="GarageCars" value="2" min="0">
+            </div>
+            <div>
+              <label for="GarageArea">Garage area (sq ft)</label>
+              <input type="number" id="GarageArea" value="400" min="0">
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Quality &amp; condition</legend>
+          <div class="field-grid">
+            <div>
+              <label for="OverallQual">Overall quality (1-10)</label>
+              <input type="number" id="OverallQual" value="7" min="1" max="10" required>
+            </div>
+            <div>
+              <label for="KitchenQual">Kitchen quality</label>
+              <select id="KitchenQual">
+                <option value="Ex">Excellent</option>
+                <option value="Gd" selected>Good</option>
+                <option value="TA">Typical/Average</option>
+                <option value="Fa">Fair</option>
+              </select>
+            </div>
+            <div>
+              <label for="YearBuilt">Year built</label>
+              <input type="number" id="YearBuilt" value="2005" min="1800" required>
+            </div>
+            <div>
+              <label for="YearRemodAdd">Year remodeled</label>
+              <input type="number" id="YearRemodAdd" value="2010" min="1800" required>
+            </div>
+            <div>
+              <label for="PoolArea">Pool area (sq ft, 0 if none)</label>
+              <input type="number" id="PoolArea" value="0" min="0">
+            </div>
+            <div>
+              <label for="YrSold">Year of sale</label>
+              <input type="number" id="YrSold" value="2024" min="1900" required>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Location</legend>
+          <div class="field-grid wide">
+            <div>
+              <label for="Neighborhood">Neighborhood code</label>
+              <input type="text" id="Neighborhood" value="CollgCr" required>
+            </div>
+          </div>
+        </fieldset>
+
+        <button class="submit" type="submit" id="submitBtn">Estimate sale price</button>
+      </form>
+
+      <div class="result card" id="resultCard">
+        <div class="result-empty">
+          <span class="glyph">$</span>
+          Fill in the details and estimate to see a valuation here.
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  const form = document.getElementById('valuationForm');
+  const resultCard = document.getElementById('resultCard');
+  const submitBtn = document.getElementById('submitBtn');
+  const apiBaseInput = document.getElementById('apiBase');
+
+  const val = (id) => document.getElementById(id).value;
+  const num = (id) => Number(document.getElementById(id).value || 0);
+
+  function showLoading() {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner"></span>Estimating…';
+  }
+  function resetButton() {
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Estimate sale price';
+  }
+  function showResult(price) {
+    const formatted = price.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+    resultCard.innerHTML = `
+      <div class="result-label">Estimated sale price</div>
+      <div class="result-price">${formatted}</div>
+      <div class="result-sub">Based on the trained stacking ensemble model</div>
+    `;
+  }
+  function showError(message) {
+    resultCard.innerHTML = `
+      <div class="result-error">
+        <strong>Couldn't get an estimate</strong>
+        ${message}
+      </div>
+    `;
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    showLoading();
+
+    const payload = {
+      OverallQual: num('OverallQual'),
+      GrLivArea: num('GrLivArea'),
+      TotalBsmtSF: num('TotalBsmtSF'),
+      FirstFlrSF: num('FirstFlrSF'),
+      SecondFlrSF: num('SecondFlrSF'),
+      GarageArea: num('GarageArea'),
+      GarageCars: num('GarageCars'),
+      YearBuilt: num('YearBuilt'),
+      YearRemodAdd: num('YearRemodAdd'),
+      YrSold: num('YrSold'),
+      FullBath: num('FullBath'),
+      HalfBath: num('HalfBath'),
+      BsmtFullBath: num('BsmtFullBath'),
+      BsmtHalfBath: num('BsmtHalfBath'),
+      LotArea: num('LotArea'),
+      PoolArea: num('PoolArea'),
+      Neighborhood: val('Neighborhood'),
+      HouseStyle: val('HouseStyle'),
+      KitchenQual: val('KitchenQual'),
+    };
+
+    const base = apiBaseInput.value.replace(/\/$/, '');
+
+    try {
+      const res = await fetch(`${base}/predict`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        showError(data.detail || 'The API returned an error.');
+      } else {
+        showResult(data.predicted_sale_price);
+      }
+    } catch (err) {
+      showError('Could not reach the API. Check the API URL above and make sure the server is running.');
+    } finally {
+      resetButton();
+    }
+  });
+})();
+</script>
+</body>
+</html>

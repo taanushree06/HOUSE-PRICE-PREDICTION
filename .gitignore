@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Dataset
+data/
+
+# CatBoost training logs
+catboost_info/
+
+# Local model artifacts
+models/*.pkl
+models/*.png
+
+# Environment / secrets
+.env
+
+# OS files
+.DS_Store
+Thumbs.db

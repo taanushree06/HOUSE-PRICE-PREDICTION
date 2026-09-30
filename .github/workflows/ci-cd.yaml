@@ -1,0 +1,75 @@
+# ===================== CI/CD PIPELINE (MLOps) =====================
+# Triggers on every push. Automates: test -> train -> validate -> build -> deploy.
+# This replaces "manually running train.py and copying files around".
+
+name: house-price-ml-pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run unit tests
+        run: pytest tests/ -v
+
+  train_and_validate:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Train model
+        run: python src/train.py
+
+      - name: Validate model performance (fail pipeline if RMSE too high)
+        run: python tests/validate_model_quality.py
+
+      - name: Upload model artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: trained-model
+          path: models/
+
+  build_and_push_image:
+    needs: train_and_validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download trained model
+        uses: actions/download-artifact@v4
+        with:
+          name: trained-model
+          path: models/
+
+      - name: Build Docker image
+        run: docker build -t house-price-api:${{ github.sha }} .
+
+      # In a real setup: docker push to ECR / GCR / Docker Hub here,
+      # then trigger a rolling deploy (Kubernetes/ECS/Cloud Run).
+      - name: (Placeholder) Push & Deploy
+        run: echo "Push image to registry and deploy to serving environment"
